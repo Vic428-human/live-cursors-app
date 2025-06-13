@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-
+import throttle from 'lodash.throttle';
   
 export const Home = ({username}) => {
-  const [socketUrl, setSocketUrl] = useState('ws://127.0.0.1:8000');
-
-
+  const [socketUrl] = useState('ws://127.0.0.1:8000');
+  
+  // 用 ref 儲存最新座標與 animation frame 狀態
   const { 
     sendMessage,
     sendJsonMessage,
@@ -16,6 +16,26 @@ export const Home = ({username}) => {
   } = useWebSocket(socketUrl,{ share: true, queryParams: {   //<url>?username='Eric'
     username
   }});
+
+  // 用 throttle 包裝滑鼠事件
+  const throttledSend = useRef(
+    throttle((x, y) => {
+      sendJsonMessage({ type: 'cursor', x, y });
+    }, 1000) 
+  ).current;
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      throttledSend(e.clientX, e.clientY);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      throttledSend.cancel();
+    };
+  }, [throttledSend]);
+
+  
   return (
     <div>
       <h2>
