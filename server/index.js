@@ -15,42 +15,76 @@ const wsServer = new WebSocket.Server({ server: httpServer });
 const connections = {}; 
 const users = {};
 
+
+function broadcastUserStateUpdate(connections, randomUuid, user) {
+  Object.keys(connections).forEach((uuid) => {
+    const ws = connections[uuid];
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'userStateUpdateToEveryone',
+        user: {
+          uuid: randomUuid,
+          username: user.username,
+          state: user.state
+        }
+      }));
+    }
+  });
+}
+
 handleMessage = (bytes, randomUuid) => {
+
+  if (!users[randomUuid]) {
+    console.error(`User not found: ${randomUuid}`);
+    return;
+  }
   // 預設 message = { x: 0, y: 0 }
   const message = JSON.parse(bytes.toString());
-  console.log(message, randomUuid);
+  // 更新用戶狀態
+  const user = users[randomUuid]; 
+  user.state = message; 
+  console.log(`使用者 ${user.username} 更新座標狀態：`, user.state);
+
+  // 將更新後的用戶狀態發送給所有連接的客戶端
+  broadcastUserStateUpdate(connections, randomUuid, user);
+
+
 }
-handleClose = (randomUuid) => {
-  console.log(`Client disconnected: ${randomUuid}`);
-  
+handleClose = (bytes, randomUuid) => {
+   const message = JSON.parse(bytes.toString());
+  const user = users[randomUuid]; 
+  user.state = message;
+  console.log(`使用者: ${user.username}  ${randomUuid} 已斷線`);
+  // 將更新後的用戶狀態發送給所有連接的客戶端
+  broadcastUserStateUpdate(connections, randomUuid, users);
+  // 關閉連線時，從 connections 和 users 中移除該用戶
+  delete connections[randomUuid];
+  delete users[randomUuid];
+
 }
 
 wsServer.on('connection', (ws, req) =>{
 // ws://example.com/path? a=1 & b=2 & username=JaneDoe
 // ex:  const { username } = url.parse(req.url, true).query; => username = 'JaneDoe'
-  const { username, lastname } = url.parse(req.url, true).query;
+  const { username } = url.parse(req.url, true).query;
   // Generate a random UUID
   const randomUuid = uuidv4();
-
-  console.log('randomUuid', randomUuid);
-  console.log(`New client connected: ${username} + ${lastname}`);
   
   // 存儲當前連線的uuid用戶端識別
   connections[randomUuid] = ws;
   users[randomUuid] = { 
-     username ,
-    // 跟 x 和 y 有關的狀態 
-     state :{ }
+     username,
+     state : {}
   };
 
-  // 當 WebSocket 接收到消息時觸發。（例如：用戶 uuid 端發送的訊息）
+  // WebSocket 伺服器收到使用者（client）發來的訊息」時要執行的動作。
   ws.on('message', (message) => {
     handleMessage(message, randomUuid);
   });
 
   // 當 WebSocket 連線關閉時觸發。
-  ws.on('close', () => {
-    handleClose(randomUuid);
+  ws.on('close', (message) => {
+    handleClose(message, randomUuid);
   });
 });
 
