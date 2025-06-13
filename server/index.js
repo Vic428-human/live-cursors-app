@@ -15,6 +15,16 @@ const wsServer = new WebSocket.Server({ server: httpServer });
 const connections = {}; 
 const users = {};
 
+handleMessage = (bytes, randomUuid) => {
+  // 預設 message = { x: 0, y: 0 }
+  const message = JSON.parse(bytes.toString());
+  console.log(message);
+}
+handleClose = (randomUuid) => {
+  console.log(`Client disconnected: ${randomUuid}`);
+  
+}
+
 wsServer.on('connection', (ws, req) =>{
 // ws://example.com/path? a=1 & b=2 & username=JaneDoe
 // ex:  const { username } = url.parse(req.url, true).query; => username = 'JaneDoe'
@@ -27,11 +37,20 @@ wsServer.on('connection', (ws, req) =>{
   
 
   connections[randomUuid] = ws;
-  users[randomUuid] = { username : username };
+  users[randomUuid] = { 
+     username ,
+    // 跟 x 和 y 有關的狀態 
+     state :{ }
+     };
 
+  // 用來接收來自客戶端（或伺服端）發送過來的訊息。
+  ws.on('message', (message) => {
+    handleMessage(message, randomUuid);
+  });
+
+  // 當 WebSocket 連線關閉時觸發。
   ws.on('close', () => {
-    console.log('Client disconnected');
-    delete connections[randomUuid];
+    handleClose(randomUuid);
   });
 });
 
