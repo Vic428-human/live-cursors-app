@@ -1,6 +1,7 @@
 const http = require('http');
 const WebSocket = require('ws');
 const url = require('url');
+const { v4: uuidv4 } = require('uuid');
 
 
 const httpServer = http.createServer((req, res) => {
@@ -10,23 +11,27 @@ const httpServer = http.createServer((req, res) => {
 
 const wsServer = new WebSocket.Server({ server: httpServer });
 
+// 這兩個物件是用來儲存 WebSocket 連接和用戶信息的。
+const connections = {}; 
+const users = {};
 
 wsServer.on('connection', (ws, req) =>{
 // ws://example.com/path? a=1 & b=2 & username=JaneDoe
 // ex:  const { username } = url.parse(req.url, true).query; => username = 'JaneDoe'
-const { username,lastname } = url.parse(req.url, true).query;
+  const { username, lastname } = url.parse(req.url, true).query;
+  // Generate a random UUID
+  const randomUuid = uuidv4();
 
+  console.log('randomUuid', randomUuid);
   console.log(`New client connected: ${username} + ${lastname}`);
-  ws.on('message', (message) => {
-    if (message.type === 'test') {
-      const { param1, param2 } = message.data;
-      console.log(`Received message with params: ${param1}, ${param2}`);
-      // 處理 message.data 中的參數
-    }
-  });
+  
+
+  connections[randomUuid] = ws;
+  users[randomUuid] = { username : username };
 
   ws.on('close', () => {
     console.log('Client disconnected');
+    delete connections[randomUuid];
   });
 });
 
