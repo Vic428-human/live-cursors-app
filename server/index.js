@@ -69,6 +69,8 @@ wsServer.on('connection', (ws, req) =>{
   const { username } = url.parse(req.url, true).query;
   // Generate a random UUID
   const randomUuid = uuidv4();
+
+  console.log(`使用者 ${username} (${randomUuid}) 已連線`);
   
   // 存儲當前連線的uuid用戶端識別
   connections[randomUuid] = ws;
