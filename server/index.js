@@ -18,7 +18,7 @@ const users = {};
 handleMessage = (bytes, randomUuid) => {
   // 預設 message = { x: 0, y: 0 }
   const message = JSON.parse(bytes.toString());
-  console.log(message);
+  console.log(message, randomUuid);
 }
 handleClose = (randomUuid) => {
   console.log(`Client disconnected: ${randomUuid}`);
@@ -35,15 +35,15 @@ wsServer.on('connection', (ws, req) =>{
   console.log('randomUuid', randomUuid);
   console.log(`New client connected: ${username} + ${lastname}`);
   
-
+  // 存儲當前連線的uuid用戶端識別
   connections[randomUuid] = ws;
   users[randomUuid] = { 
      username ,
     // 跟 x 和 y 有關的狀態 
      state :{ }
-     };
+  };
 
-  // 用來接收來自客戶端（或伺服端）發送過來的訊息。
+  // 當 WebSocket 接收到消息時觸發。（例如：用戶 uuid 端發送的訊息）
   ws.on('message', (message) => {
     handleMessage(message, randomUuid);
   });
