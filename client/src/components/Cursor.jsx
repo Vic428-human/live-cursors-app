@@ -1,9 +1,9 @@
 // https://www.npmjs.com/package/perfect-cursors
 import * as React from 'react'
-import { usePerfectCursor } from '../hooks/usePerfectCursors'
+import { usePerfectCursor } from '../hook/useCursor'
 
-export function Cursor({ point }) {
-  const rCursor = React.useRef<SVGSVGElement>(null)
+export function Cursor({ point }) {  // number[]
+  const rCursor = React.useRef(null)
 
   const animateCursor = React.useCallback((point) => {
     const elm = rCursor.current
